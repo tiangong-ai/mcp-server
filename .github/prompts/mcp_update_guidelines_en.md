@@ -1,3 +1,22 @@
+---
+docType: agent-prompt
+scope: repo
+status: current
+authoritative: true
+owner: mcp
+language: en
+whenToUse: "When updating MCP tool registration, schemas, auth, or transport behavior."
+whenToUpdate: "When tool inventory, server entry points, validation commands, or agent-facing MCP update guidance changes."
+checkPaths:
+  - AGENTS.md
+  - AGENTS_ZH.md
+  - .docpact/config.yaml
+  - package.json
+  - src/**
+lastReviewedAt: 2026-04-29
+lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+---
+
 # MCP Update Guidelines
 
 ## Preparation
@@ -25,17 +44,14 @@
   `Search_Sci_Tool` → `sci_search`,\
   `Search_ESG_Tool` → `esg_search`,\
   `Search_Edu_Tool` → `edu_search`.
-- After creating or updating a tool module, register it in `src/_shared/init_server_http.ts` so both STDIO and HTTP servers expose the capability.
+- After creating or updating a tool module, register it in `src/_shared/init_server_http.ts` so the HTTP server exposes the capability.
 
 ## Quality & Verification
 - Add integration coverage in `src/test.ts` or companion files so the MCP Inspector can exercise the new behavior.
-- Run `npm run build` and, where possible, `npm run start:server` with representative credentials to verify end-to-end flow.
+- Run `npm run build` and, where possible, `npx dotenv -e .env -- node dist/src/index_server.js` with representative credentials to verify end-to-end flow.
 - Execute `npm run lint` and address formatting so the distributed prompts remain clean.
 
 ## Documentation & Release
-- Update `AGENTS.md` / `AGENTS_CN.md` and agent handbooks when tool capabilities change or new parameters surface.
-- Note any deployment considerations (Edge Function version bumps, Redis cache changes) in `AGENTS.md` / `AGENTS_CN.md`.
+- Update `AGENTS.md` / `AGENTS_ZH.md` and agent handbooks when tool capabilities change or new parameters surface.
+- Note any deployment considerations (Edge Function version bumps, Redis cache changes) in `AGENTS.md` / `AGENTS_ZH.md`.
 - Before publishing, confirm the built artifact in `dist/src/index_server.js` exposes the new tool via the CLI binary.
-
-## Known Issues
-- MCP Inspector 0.17.2 introduces a regression where empty JSON inputs (for example the `filter` field on `Search_Sci_Tool`) trigger `Cannot read properties of undefined (reading 'trim')`. Pin `@modelcontextprotocol/inspector` to `0.16.8` in `package.json` and reinstall dependencies until an upstream fix is released.

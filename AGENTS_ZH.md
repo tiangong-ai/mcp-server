@@ -1,3 +1,22 @@
+---
+docType: agent-contract
+scope: repo
+status: current
+authoritative: true
+owner: mcp
+language: zh-CN
+whenToUse: "Before editing the MCP server repository with Chinese-language agent guidance."
+whenToUpdate: "When repo entry points, workflow commands, docpact config, MCP tools, auth behavior, or deployment boundaries change."
+checkPaths:
+  - AGENTS.md
+  - AGENTS_ZH.md
+  - .docpact/config.yaml
+  - .github/prompts/**
+  - _docs/**
+lastReviewedAt: 2026-04-29
+lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+---
+
 # TianGong AI MCP – Agent 指南
 
 ## 项目概览
@@ -45,8 +64,8 @@ LOCAL_LANGSMITH_API_KEY / REMOTE_LANGSMITH_API_KEY
 ## 开发流程
 1. `npm install`：安装依赖。
 2. `npm run build`：编译 TypeScript 到 `dist/` 并调整脚本权限。
-3. `npm start`：启动 STDIO MCP 服务器并打开 MCP Inspector，便于本地快速联调。
-4. `npm run start:server`：构建并启动 HTTP 服务器（需 `.env` 提供认证信息），同时自动打开 Inspector。
+3. `npx dotenv -e .env -- node dist/src/index_server.js`：在 `npm run build` 后启动本地 HTTP MCP 服务器。
+4. `npx @modelcontextprotocol/inspector`：需要交互式调试时单独启动 Inspector。
 5. `npm run lint`：使用 Prettier 自动格式化 / 修复。
 
 `src/test.ts` 给出了如何通过 Streamable HTTP 方式连接 `http://localhost:9277/mcp` 的示例客户端。

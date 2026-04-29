@@ -1,0 +1,180 @@
+version: 1
+layout: repo
+lastReviewedAt: "2026-04-29"
+lastReviewedCommit: "04a3868c3b259fd4fe32b35b8198e20bbf4f329c"
+
+repo:
+  id: mcp
+
+routing:
+  intents:
+    governance:
+      paths:
+        - AGENTS.md
+        - AGENTS_ZH.md
+        - .docpact/**
+        - .github/workflows/docpact.yml
+        - .github/prompts/**
+        - _docs/**
+    architecture:
+      paths:
+        - src/**
+        - mcp_config.json
+        - tsconfig.json
+    operations:
+      paths:
+        - README.md
+        - README_CN.md
+        - DEV_EN.md
+        - DEV_CN.md
+        - package.json
+        - Dockerfile
+        - .env.example
+        - test.http
+
+coverage:
+  include:
+    - AGENTS.md
+    - AGENTS_ZH.md
+    - README.md
+    - README_CN.md
+    - DEV_EN.md
+    - DEV_CN.md
+    - .docpact/**
+    - .github/workflows/docpact.yml
+    - _docs/**
+    - package.json
+    - tsconfig.json
+    - Dockerfile
+    - mcp_config.json
+    - .env.example
+    - src/**
+    - test.http
+    - .github/prompts/**
+  exclude:
+    - .git/**
+    - .docpact/runs/**
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+    - .DS_Store
+    - "**/.DS_Store"
+
+docInventory:
+  include:
+    - AGENTS.md
+    - AGENTS_ZH.md
+    - README.md
+    - README_CN.md
+    - DEV_EN.md
+    - DEV_CN.md
+    - .docpact/config.yaml
+    - .github/prompts/**
+    - _docs/**
+  exclude:
+    - .git/**
+    - .docpact/runs/**
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+
+freshness:
+  warn_after_commits: 50
+  warn_after_days: 90
+  critical_after_days: 180
+
+rules:
+  - id: mcp-governance
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: AGENTS.md
+        kind: agent-contract
+      - path: AGENTS_ZH.md
+        kind: localized-agent-contract
+      - path: .docpact/config.yaml
+        kind: machine-contract
+      - path: .github/workflows/docpact.yml
+        kind: governance-ci
+      - path: .github/prompts/**
+        kind: agent-prompt
+      - path: _docs/**
+        kind: governed-docs
+      - path: README.md
+        kind: repo-entry
+      - path: README_CN.md
+        kind: localized-repo-entry
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: AGENTS_ZH.md
+        mode: review_or_update
+      - path: README_CN.md
+        mode: review_or_update
+      - path: .github/prompts/mcp_update_guidelines_en.md
+        mode: review_or_update
+      - path: .github/prompts/mcp_update_guidelines_zh.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: _docs/README.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+      - path: _docs/standards/documentation-standards.md
+        mode: review_or_update
+    reason: Repository entry guidance, governance config, and documentation standards must remain aligned.
+  - id: mcp-server-surface
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: src/**
+        kind: mcp-source
+      - path: mcp_config.json
+        kind: mcp-client-config
+      - path: tsconfig.json
+        kind: typescript-config
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: README.md
+        mode: review_or_update
+      - path: _docs/architecture/repo-architecture.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+    reason: MCP tools, server transport, auth behavior, and TypeScript runtime configuration must stay synchronized with docs.
+  - id: mcp-operations
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: package.json
+        kind: node-workflow
+      - path: Dockerfile
+        kind: deployment-container
+      - path: .env.example
+        kind: environment-template
+      - path: DEV_EN.md
+        kind: developer-guide
+      - path: DEV_CN.md
+        kind: localized-developer-guide
+      - path: test.http
+        kind: api-test-example
+    requiredDocs:
+      - path: README.md
+        mode: review_or_update
+      - path: README_CN.md
+        mode: review_or_update
+      - path: DEV_EN.md
+        mode: review_or_update
+      - path: DEV_CN.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+    reason: Build, server, packaging, and environment workflows define operator-facing behavior.

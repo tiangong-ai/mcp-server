@@ -1,3 +1,22 @@
+---
+docType: agent-prompt
+scope: repo
+status: current
+authoritative: true
+owner: mcp
+language: zh-CN
+whenToUse: "When updating MCP tool registration, schemas, auth, or transport behavior."
+whenToUpdate: "When tool inventory, server entry points, validation commands, or agent-facing MCP update guidance changes."
+checkPaths:
+  - AGENTS.md
+  - AGENTS_ZH.md
+  - .docpact/config.yaml
+  - package.json
+  - src/**
+lastReviewedAt: 2026-04-29
+lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+---
+
 # MCP 更新指引
 
 ## 准备阶段
@@ -25,17 +44,14 @@
   `Search_Sci_Tool` → `sci_search`、\
   `Search_ESG_Tool` → `esg_search`、\
   `Search_Edu_Tool` → `edu_search`。
-- 新增或更新工具后，务必在 `src/_shared/init_server_http.ts` 中完成注册，确保 STDIO 与 HTTP 服务都能暴露能力。
+- 新增或更新工具后，务必在 `src/_shared/init_server_http.ts` 中完成注册，确保 HTTP 服务能暴露能力。
 
 ## 质量验证
 - 在 `src/test.ts` 或配套测试文件中补充场景，方便 MCP Inspector 端到端验证新能力。
-- 运行 `npm run build`，必要时使用有效凭据执行 `npm run start:server` 确认整体链路。
+- 运行 `npm run build`，必要时使用有效凭据执行 `npx dotenv -e .env -- node dist/src/index_server.js` 确认整体链路。
 - 执行 `npm run lint` 并处理格式问题，确保提交的提示文件保持整洁一致。
 
 ## 文档与发布
-- 当工具能力或参数变化时，及时同步到 `AGENTS.md` / `AGENTS_CN.md` 及相关手册。
-- 将部署注意事项（Edge Function 版本、Redis 缓存调整等）记录在 `AGENTS.md` / `AGENTS_CN.md`。
+- 当工具能力或参数变化时，及时同步到 `AGENTS.md` / `AGENTS_ZH.md` 及相关手册。
+- 将部署注意事项（Edge Function 版本、Redis 缓存调整等）记录在 `AGENTS.md` / `AGENTS_ZH.md`。
 - 发布前确认 `dist/src/index_server.js` 中的 CLI 二进制已导出最新工具。
-
-## 已知问题
-- MCP Inspector 0.17.2 存在回归：JSON 表单为空时（例如 `Search_Sci_Tool` 的 `filter` 字段）会抛出 `Cannot read properties of undefined (reading 'trim')`。请在 `package.json` 中将 `@modelcontextprotocol/inspector` 固定为 `0.16.8` 并重新安装依赖，等待上游修复。

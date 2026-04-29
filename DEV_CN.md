@@ -1,3 +1,24 @@
+---
+docType: runbook
+scope: repo
+status: current
+authoritative: true
+owner: mcp
+language: zh-CN
+whenToUse: "When setting up, developing, testing, publishing, or deploying the MCP server with Chinese-language guidance."
+whenToUpdate: "When setup, build, local server, publishing, or Docker deployment commands change."
+checkPaths:
+  - README.md
+  - README_CN.md
+  - DEV_EN.md
+  - package.json
+  - Dockerfile
+  - .env.example
+  - src/**
+lastReviewedAt: 2026-04-29
+lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+---
+
 # TianGong-AI-MCP
 
 [中文](https://github.com/linancn/tiangong-ai-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-ai-mcp/blob/main/DEV_EN.md)
@@ -12,9 +33,6 @@ nvm use
 
 # 安装依赖
 npm install
-
-# 更新依赖
-npm update && npm ci
 ```
 
 ## 代码格式化
@@ -26,11 +44,11 @@ npm run lint
 
 ## 本地测试
 
-### STDIO 服务器
+### HTTP 服务器
 
 ```bash
-# 使用 MCP Inspector 启动 STDIO 服务器
-npm run start
+npm run build
+npx dotenv -e .env -- node dist/src/index_server.js
 ```
 
 ### 启动 MCP Inspector
@@ -58,3 +76,5 @@ docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
 
 docker run -d -p 9277:9277 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
 ```
+
+镜像元数据声明 `EXPOSE 80`，但服务默认监听 `PORT=9277`；如部署平台固定端口，请显式设置 `PORT`。
