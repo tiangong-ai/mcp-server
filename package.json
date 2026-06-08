@@ -2,6 +2,14 @@
   "name": "@tiangong-ai/mcp-server",
   "version": "0.0.18",
   "description": "TianGong AI MCP Server",
+  "homepage": "https://github.com/linancn/tiangong-ai-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linancn/tiangong-ai-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/linancn/tiangong-ai-mcp/issues"
+  },
   "license": "MIT",
   "author": "Nan LI",
   "type": "module",
