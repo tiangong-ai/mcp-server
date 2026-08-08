@@ -14,8 +14,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - .github/prompts/**
   - _docs/**
-lastReviewedAt: 2026-04-29
-lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+lastReviewedAt: 2026-08-09
+lastReviewedCommit: 7c057c3d76f9254fc333dc13413bfc02ff3509bd
 ---
 
 # MCP Documentation
