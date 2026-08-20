@@ -13,8 +13,8 @@ checkPaths:
   - .docpact/config.yaml
   - package.json
   - src/**
-lastReviewedAt: 2026-08-09
-lastReviewedCommit: 7c057c3d76f9254fc333dc13413bfc02ff3509bd
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
 ---
 
 # MCP 更新指引
