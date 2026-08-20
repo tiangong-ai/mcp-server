@@ -20,8 +20,8 @@ checkPaths:
   - DEV_EN.md
   - DEV_CN.md
   - src/**
-lastReviewedAt: 2026-04-29
-lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
 ---
 
 # TianGong-AI-MCP
