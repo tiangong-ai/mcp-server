@@ -21,7 +21,7 @@ lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
 
 # TianGong-AI-MCP
 
-[中文](https://github.com/linancn/tiangong-ai-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-ai-mcp/blob/main/DEV_EN.md)
+[中文](https://github.com/tiangong-ai/mcp-server/blob/main/DEV_CN.md) | [English](https://github.com/tiangong-ai/mcp-server/blob/main/DEV_EN.md)
 
 ## 环境设置
 

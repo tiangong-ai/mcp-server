@@ -13,8 +13,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - .github/prompts/**
   - _docs/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-09-13
+lastReviewedCommit: 7e0b6f4bb92d9deebf484fc9aa76416a3a73296a
 ---
 
 # TianGong AI MCP Agent Contract

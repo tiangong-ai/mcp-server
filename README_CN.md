@@ -27,7 +27,7 @@ lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
 
 # TianGong-AI-MCP
 
-[中文](https://github.com/linancn/tiangong-ai-mcp/blob/main/README_CN.md) | [English](https://github.com/linancn/tiangong-ai-mcp/blob/main/README.md)
+[中文](https://github.com/tiangong-ai/mcp-server/blob/main/README_CN.md) | [English](https://github.com/tiangong-ai/mcp-server/blob/main/README.md)
 
 TianGong AI Model Context Protocol (MCP) Server 支持 Streamable Http 协议。
 
