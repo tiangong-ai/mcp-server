@@ -13,8 +13,8 @@ checkPaths:
   - .docpact/config.yaml
   - .github/prompts/**
   - _docs/**
-lastReviewedAt: 2026-09-13
-lastReviewedCommit: 7e0b6f4bb92d9deebf484fc9aa76416a3a73296a
+lastReviewedAt: 2026-09-14
+lastReviewedCommit: ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746
 ---
 
 # TianGong AI MCP – Agent 指南
