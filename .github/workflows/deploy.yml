@@ -13,15 +13,6 @@ on:
       - .github/workflows/deploy.yml
   push:
     branches: [main]
-    paths:
-      - src/**
-      - scripts/**
-      - deployment/**
-      - package.json
-      - tsconfig.json
-      - Dockerfile
-      - .dockerignore
-      - .github/workflows/deploy.yml
   workflow_dispatch:
 
 permissions:
