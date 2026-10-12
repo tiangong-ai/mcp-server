@@ -56,7 +56,7 @@ class FakeAws:
                 "serviceArn": deployment.SERVICE_ARN, "status": "ACTIVE",
                 "taskDefinition": self.current, "desiredCount": 1,
                 "runningCount": 1, "pendingCount": 0,
-                "deployments": [{"status": "PRIMARY", "taskDefinition": self.current}],
+                "deployments": [{"status": "PRIMARY", "rolloutState": "COMPLETED", "taskDefinition": self.current}],
                 "deploymentConfiguration": {"minimumHealthyPercent": 100, "maximumPercent": 200,
                     "deploymentCircuitBreaker": {"enable": True, "rollback": True}},
             }]}
@@ -97,6 +97,11 @@ class FakeAws:
 
 
 class DeployTests(unittest.TestCase):
+    def setUp(self):
+        guard = patch("deploy_ecs.verify_current_source")
+        guard.start()
+        self.addCleanup(guard.stop)
+
     def test_preserves_approved_runtime_settings_except_image(self):
         original = copy.deepcopy(DEFINITION)
         rendered = deployment.render_task_definition(original, IMAGE)
@@ -258,6 +263,61 @@ class DeployTests(unittest.TestCase):
                 deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path, http_check=lambda: {})
             self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE])
             self.assertEqual(json.loads(path.read_text())["status"], "qualified-baseline-retained")
+
+    def test_in_progress_rollout_is_not_qualified_by_counts(self):
+        aws = FakeAws()
+        original_call = aws.call
+        def incomplete(*args, **kwargs):
+            response = original_call(*args, **kwargs)
+            if args[1] == "describe-services":
+                response["services"][0]["deployments"][0]["rolloutState"] = "IN_PROGRESS"
+            return response
+        aws.call = incomplete
+        with self.assertRaises(deployment.DeploymentError):
+            deployment.verify_running(aws, PREVIOUS)
+
+    def test_same_revision_rollout_guard_drift_blocks_updates(self):
+        aws = FakeAws()
+        original_call = aws.call
+        reads = 0
+        def changed_guards(*args, **kwargs):
+            nonlocal reads
+            response = original_call(*args, **kwargs)
+            if args[1] == "describe-services":
+                reads += 1
+                if reads >= 3:
+                    response["services"][0]["deploymentConfiguration"]["minimumHealthyPercent"] = 0
+            return response
+        aws.call = changed_guards
+        with self.assertRaises(deployment.DeploymentError):
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
+        self.assertFalse(aws.updates())
+
+    def test_stale_source_stops_before_any_aws_operation(self):
+        aws = FakeAws()
+        def stale(_revision):
+            raise deployment.StaleSourceError("Stale source")
+        with self.assertRaises(deployment.StaleSourceError):
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, source_check=stale)
+        self.assertFalse(aws.calls)
+
+    def test_source_advance_during_bootstrap_keeps_qualified_baseline(self):
+        aws = FakeAws()
+        calls = 0
+        def changes(_revision):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                raise deployment.StaleSourceError("Main advanced")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            with self.assertRaises(deployment.StaleSourceError):
+                deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True,
+                    source_check=changes, receipt=path, http_check=lambda: {})
+            result = json.loads(path.read_text())
+            self.assertEqual(aws.updates(), [ROLLBACK])
+            self.assertTrue(result["staleSource"])
+            self.assertEqual(result["status"], "qualified-baseline-retained")
 
     def test_plan_does_not_mutate(self):
         aws = FakeAws()

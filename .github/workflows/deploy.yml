@@ -73,6 +73,14 @@ jobs:
         run: |
           docker run --rm --network none -i --entrypoint node -e SOURCE_REVISION="$GITHUB_SHA" \
             mcp-candidate:local --input-type=module < scripts/image_inventory.mjs > runtime-dependencies.json
+      - name: Refuse a stale main snapshot before AWS authentication
+        run: |
+          set -euo pipefail
+          remote_main="$(git ls-remote --exit-code origin refs/heads/main | cut -f 1)"
+          if [ "$remote_main" != "$GITHUB_SHA" ]; then
+            echo "::error::Remote main advanced; refusing stale deployment."
+            exit 1
+          fi
       - name: Require the production OIDC role
         env:
           ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}

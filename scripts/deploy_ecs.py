@@ -66,6 +66,12 @@ def describe_service(aws):
     service = response["services"][0]
     if service.get("serviceArn") != SERVICE_ARN or service.get("status") != "ACTIVE":
         raise DeploymentError("Unexpected service identity or status")
+    configuration = service.get("deploymentConfiguration", {})
+    breaker = configuration.get("deploymentCircuitBreaker", {})
+    if (service.get("desiredCount") != 1 or configuration.get("minimumHealthyPercent") != 100
+            or configuration.get("maximumPercent") != 200
+            or breaker.get("enable") is not True or breaker.get("rollback") is not True):
+        raise DeploymentError("Expected desired=1 and existing 100/200 circuit-breaker rollout guards")
     return service
 
 
@@ -121,7 +127,8 @@ def verify_running(aws, task_definition, image=None, digest=None):
             or service.get("pendingCount") != 0
             or service.get("runningCount") != service.get("desiredCount")
             or service.get("desiredCount", 0) < 1
-            or len(service.get("deployments", [])) != 1):
+            or len(service.get("deployments", [])) != 1
+            or service["deployments"][0].get("rolloutState") != "COMPLETED"):
         raise DeploymentError("Service did not stabilize on the intended task definition")
     response = aws.call("ecs", "list-tasks", "--cluster", CLUSTER, "--service-name", SERVICE, "--desired-status", "RUNNING")
     arns = response.get("taskArns", [])
@@ -166,15 +173,25 @@ def verify_public_http():
     return checks
 
 
-def deploy(aws, image, definition, source_revision, execute=False, receipt=None, http_check=verify_public_http):
+def verify_current_source(source_revision):
+    result = subprocess.run(["git", "ls-remote", "--exit-code", "origin", "refs/heads/main"],
+                            capture_output=True, text=True, check=False)
+    lines = result.stdout.splitlines()
+    if result.returncode or len(lines) != 1 or len(lines[0].split()) != 2:
+        raise DeploymentError("Cannot verify current remote main; refusing deployment")
+    if lines[0].split() != [source_revision, "refs/heads/main"]:
+        raise StaleSourceError("Source is not the current remote main; refusing stale deployment")
+
+
+class StaleSourceError(DeploymentError):
+    pass
+
+
+def deploy(aws, image, definition, source_revision, execute=False, receipt=None, http_check=verify_public_http, source_check=None):
+    source_check = source_check or verify_current_source
+    source_check(source_revision)
     service = describe_service(aws)
     previous = service["taskDefinition"]
-    configuration = service.get("deploymentConfiguration", {})
-    breaker = configuration.get("deploymentCircuitBreaker", {})
-    if (service.get("desiredCount") != 1 or configuration.get("minimumHealthyPercent") != 100
-            or configuration.get("maximumPercent") != 200
-            or breaker.get("enable") is not True or breaker.get("rollback") is not True):
-        raise DeploymentError("Expected desired=1 and existing 100/200 circuit-breaker rollout guards")
     if not re.fullmatch(f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/{FAMILY}:[0-9]+", previous):
         raise DeploymentError("Unexpected prior task definition identity")
     if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
@@ -257,6 +274,7 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
     try:
         if describe_service(aws)["taskDefinition"] != previous:
             raise DeploymentError("Service changed before deployment; no update performed")
+        source_check(source_revision)
         if bootstrap:
             # Qualify secret/role migration on the prior image before changing product code.
             aws.call("ecs", "update-service", "--cluster", CLUSTER, "--service", SERVICE,
@@ -272,6 +290,7 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
             save_receipt(receipt, result)
         if describe_service(aws)["taskDefinition"] != baseline:
             raise DeploymentError("Service changed before candidate rollout; no update performed")
+        source_check(source_revision)
         aws.call("ecs", "update-service", "--cluster", CLUSTER, "--service", SERVICE,
                  "--task-definition", candidate)
         result["status"] = "deploying"
@@ -284,6 +303,8 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
         save_receipt(receipt, result)
         return result
     except DeploymentError as original_error:
+        if isinstance(original_error, StaleSourceError):
+            result["staleSource"] = True
         try:
             observed = describe_service(aws)
             current = observed["taskDefinition"]

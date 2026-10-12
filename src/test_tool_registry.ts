@@ -32,6 +32,7 @@ try {
   assert.deepEqual(tools.map((tool) => tool.name).sort(), expectedNames);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, 'object');
+    assert.equal(tool.inputSchema.additionalProperties, false);
     assert.ok(tool.inputSchema.required?.includes('query'));
   }
   const retiredCall = await client.callTool({
