@@ -5,6 +5,7 @@ on:
     paths:
       - src/**
       - scripts/**
+      - deployment/**
       - package.json
       - tsconfig.json
       - Dockerfile
@@ -15,6 +16,7 @@ on:
     paths:
       - src/**
       - scripts/**
+      - deployment/**
       - package.json
       - tsconfig.json
       - Dockerfile
@@ -40,7 +42,7 @@ jobs:
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build the source image and validate its final runtime offline
         run: |
-          docker buildx build --platform linux/arm64 --load --tag mcp-candidate:local .
+          docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load --tag mcp-candidate:local .
           docker run --rm --network none --entrypoint node mcp-candidate:local dist/src/test_tool_registry.js
           test "$(docker image inspect mcp-candidate:local --format '{{.Architecture}}')" = arm64
 
@@ -63,7 +65,7 @@ jobs:
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build and verify the exact image before AWS authentication
         run: |
-          docker buildx build --platform linux/arm64 --load --tag mcp-candidate:local \
+          docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load --tag mcp-candidate:local \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" .
           docker run --rm --network none --entrypoint node mcp-candidate:local dist/src/test_tool_registry.js
           test "$(docker image inspect mcp-candidate:local --format '{{.Architecture}}')" = arm64
@@ -98,7 +100,8 @@ jobs:
         env:
           IMAGE: ${{ steps.image.outputs.image }}
         run: |
-          python3 scripts/deploy_ecs.py --image "$IMAGE" --execute --receipt deployment-receipt.json
+          python3 scripts/deploy_ecs.py --image "$IMAGE" --source-revision "$GITHUB_SHA" \
+            --execute --receipt deployment-receipt.json
       - name: Preserve sanitized deployment evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

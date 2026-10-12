@@ -18,15 +18,18 @@ IMAGE = deployment.REPOSITORY + "@sha256:" + "a" * 64
 DEFINITION = {
     "taskDefinitionArn": PREVIOUS, "family": deployment.FAMILY, "revision": 1,
     "cpu": "256", "memory": "512", "networkMode": "awsvpc",
-    "executionRoleArn": deployment.LEGACY_EXECUTION_ROLE,
+    "executionRoleArn": deployment.EXECUTION_ROLE,
     "runtimePlatform": {"cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX"},
     "requiresCompatibilities": ["FARGATE"], "volumes": [],
     "containerDefinitions": [{
-        "name": deployment.CONTAINER, "image": deployment.REPOSITORY + ":latest",
+        "name": deployment.CONTAINER, "image": deployment.REPOSITORY + "@sha256:" + "b" * 64,
         "portMappings": [{"containerPort": 80, "hostPort": 80, "protocol": "tcp"}],
-        "environment": [{"name": "UPSTASH_REDIS_TOKEN", "value": "sensitive-test-sentinel"}],
-        "secrets": [{"name": "OTHER", "valueFrom": "retained-secret-reference"}],
-        "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": deployment.LOG_GROUP, "awslogs-region": deployment.REGION, "awslogs-create-group": "true"}},
+        "environment": [{"name": "PORT", "value": "80"}],
+        "secrets": [
+            {"name": key, "valueFrom": f"arn:aws:secretsmanager:{deployment.REGION}:{deployment.ACCOUNT}:secret:tiangong-ai/mcp/runtime-AbCd12:{key}::"}
+            for key in ["UPSTASH_REDIS_URL", "UPSTASH_REDIS_TOKEN"]
+        ],
+        "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": deployment.LOG_GROUP, "awslogs-region": deployment.REGION, "awslogs-create-group": "false"}},
     }],
 }
 
@@ -54,6 +57,8 @@ class FakeAws:
                 "taskDefinition": self.current, "desiredCount": 1,
                 "runningCount": 1, "pendingCount": 0,
                 "deployments": [{"status": "PRIMARY", "taskDefinition": self.current}],
+                "deploymentConfiguration": {"minimumHealthyPercent": 100, "maximumPercent": 200,
+                    "deploymentCircuitBreaker": {"enable": True, "rollback": True}},
             }]}
         if action == "describe-task-definition":
             return {"taskDefinition": self.definition}
@@ -62,7 +67,8 @@ class FakeAws:
             arn = ROLLBACK if self.register_count == 1 else CANDIDATE
             self.registered = copy.deepcopy(payload)
             self.definitions[arn] = copy.deepcopy(payload)
-            return {"taskDefinition": {**payload, "taskDefinitionArn": arn}}
+            return {"taskDefinition": {key: value for key, value in {**payload, "taskDefinitionArn": arn}.items() if key != "tags"},
+                    "tags": payload["tags"]}
         if action == "update-service":
             self.current = args[-1]
             return {}
@@ -91,7 +97,7 @@ class FakeAws:
 
 
 class DeployTests(unittest.TestCase):
-    def test_preserves_runtime_and_migrates_only_execution_role_and_image(self):
+    def test_preserves_approved_runtime_settings_except_image(self):
         original = copy.deepcopy(DEFINITION)
         rendered = deployment.render_task_definition(original, IMAGE)
         expected = copy.deepcopy({key: value for key, value in DEFINITION.items() if key in deployment.TASK_FIELDS})
@@ -106,7 +112,7 @@ class DeployTests(unittest.TestCase):
             with self.assertRaises(deployment.DeploymentError):
                 deployment.render_task_definition(DEFINITION, image)
         cases = [("family", "other"), ("cpu", "512"), ("memory", "1024"),
-                 ("executionRoleArn", "foreign-role"), ("taskRoleArn", "application-role"),
+                 ("executionRoleArn", "foreign-role"), ("executionRoleArn", deployment.LEGACY_EXECUTION_ROLE), ("taskRoleArn", "application-role"),
                  ("unknownApiField", True), ("runtimePlatform", {"cpuArchitecture": "X86_64"})]
         for key, value in cases:
             definition = copy.deepcopy(DEFINITION)
@@ -130,13 +136,132 @@ class DeployTests(unittest.TestCase):
             return original_call(*args, **kwargs)
         aws.call = missing
         with self.assertRaises(deployment.DeploymentError):
-            deployment.deploy(aws, IMAGE, execute=True)
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
         self.assertFalse(aws.updates())
         self.assertIsNone(aws.registered)
 
+    def test_rejects_plaintext_or_foreign_runtime_secret(self):
+        for mutation in ["plaintext", "foreign", "missing"]:
+            definition = copy.deepcopy(DEFINITION)
+            container = definition["containerDefinitions"][0]
+            if mutation == "plaintext":
+                container["environment"].append({"name": "UPSTASH_REDIS_TOKEN", "value": "forbidden"})
+            elif mutation == "foreign":
+                container["secrets"][0]["valueFrom"] = "foreign-secret"
+            else:
+                container["secrets"].pop()
+            with self.subTest(mutation=mutation), self.assertRaises(deployment.DeploymentError):
+                deployment.render_task_definition(definition, IMAGE)
+
+    def test_uncontrolled_prior_revision_is_rejected_before_mutation(self):
+        aws = FakeAws()
+        aws.current = FOREIGN
+        original_call = aws.call
+        def missing_tags(*args, **kwargs):
+            if args[1] == "list-tags-for-resource":
+                return {"tags": []}
+            return original_call(*args, **kwargs)
+        aws.call = missing_tags
+        with self.assertRaises(deployment.DeploymentError):
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
+        self.assertFalse(aws.updates())
+        self.assertIsNone(aws.registered)
+
+    def test_controlled_prior_revision_has_required_lineage_tags(self):
+        aws = FakeAws()
+        aws.current = CANDIDATE
+        original_call = aws.call
+        def controlled(*args, **kwargs):
+            if args[1] == "list-tags-for-resource":
+                return {"tags": [
+                    {"key": "Application", "value": "tiangong-ai-mcp"},
+                    {"key": "Repository", "value": "tiangong-ai/mcp-server"},
+                    {"key": "DeploymentKind", "value": "candidate"},
+                    {"key": "DeploymentCommit", "value": "c" * 40},
+                ]}
+            return original_call(*args, **kwargs)
+        aws.call = controlled
+        self.assertEqual(deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40)["status"], "planned")
+
+    def test_reviewed_template_contains_only_qualified_runtime_refs(self):
+        definition = json.loads((Path(__file__).resolve().parent.parent / "deployment/task-definition.json").read_text())
+        rendered = deployment.render_task_definition(definition, IMAGE)
+        self.assertEqual(rendered["containerDefinitions"][0]["environment"], [{"name": "PORT", "value": "80"}])
+        self.assertEqual(rendered["containerDefinitions"][0]["image"], IMAGE)
+
+    def test_bootstrap_image_drift_is_rejected_before_registration(self):
+        aws = FakeAws()
+        definition = copy.deepcopy(DEFINITION)
+        definition["containerDefinitions"][0]["image"] = deployment.REPOSITORY + "@sha256:" + "c" * 64
+        with self.assertRaises(deployment.DeploymentError):
+            deployment.deploy(aws, IMAGE, definition, "d" * 40, execute=True)
+        self.assertIsNone(aws.registered)
+        self.assertFalse(aws.updates())
+
+    def test_rollback_failure_records_recovery_state(self):
+        aws = FakeAws(wait_failure=True)
+        original_call = aws.call
+        def fail_rollback(*args, **kwargs):
+            if args[1] == "wait" and aws.current == ROLLBACK and CANDIDATE in aws.updates():
+                raise deployment.DeploymentError("Rollback waiter failed")
+            return original_call(*args, **kwargs)
+        aws.call = fail_rollback
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            with self.assertRaises(deployment.DeploymentError):
+                deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path, http_check=lambda: {})
+            self.assertEqual(json.loads(path.read_text())["status"], "rollback-verification-failed")
+
+    def test_bootstrap_migration_failure_stops_before_candidate(self):
+        aws = FakeAws()
+        original_call = aws.call
+        def failed_baseline(*args, **kwargs):
+            if args[1] == "wait" and aws.current == ROLLBACK:
+                raise deployment.DeploymentError("Migration waiter failed")
+            return original_call(*args, **kwargs)
+        aws.call = failed_baseline
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            with self.assertRaises(deployment.DeploymentError):
+                deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path, http_check=lambda: {})
+            self.assertEqual(aws.updates(), [ROLLBACK])
+            self.assertEqual(json.loads(path.read_text())["status"], "bootstrap-migration-not-qualified")
+
+    def test_bootstrap_breaker_return_to_legacy_is_failure_not_success(self):
+        aws = FakeAws()
+        original_call = aws.call
+        def reverted_baseline(*args, **kwargs):
+            if args[1] == "wait" and aws.current == ROLLBACK:
+                aws.current = PREVIOUS
+                raise deployment.DeploymentError("Migration reverted")
+            return original_call(*args, **kwargs)
+        aws.call = reverted_baseline
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            with self.assertRaises(deployment.DeploymentError):
+                deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path, http_check=lambda: {})
+            self.assertEqual(aws.updates(), [ROLLBACK])
+            self.assertEqual(json.loads(path.read_text())["status"], "bootstrap-migration-failed-legacy-retained")
+
+    def test_candidate_breaker_return_to_qualified_baseline_is_failure(self):
+        aws = FakeAws()
+        original_call = aws.call
+        def reverted_candidate(*args, **kwargs):
+            if args[1] == "wait" and aws.current == CANDIDATE:
+                aws.current = ROLLBACK
+                raise deployment.DeploymentError("Candidate reverted")
+            return original_call(*args, **kwargs)
+        aws.call = reverted_candidate
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            with self.assertRaises(deployment.DeploymentError):
+                deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path, http_check=lambda: {})
+            self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE])
+            self.assertEqual(json.loads(path.read_text())["status"], "qualified-baseline-retained")
+
     def test_plan_does_not_mutate(self):
         aws = FakeAws()
-        result = deployment.deploy(aws, IMAGE)
+        result = deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40)
         self.assertEqual(result["status"], "planned")
         self.assertFalse(aws.updates())
         self.assertIsNone(aws.registered)
@@ -145,38 +270,49 @@ class DeployTests(unittest.TestCase):
         aws = FakeAws()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "receipt.json"
-            result = deployment.deploy(aws, IMAGE, execute=True, receipt=path,
+            result = deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, receipt=path,
                                        http_check=lambda: {"health": 200, "unauthenticatedMcp": 401})
             self.assertEqual(result["status"], "verified")
-            self.assertEqual(aws.updates(), [CANDIDATE])
+            self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE])
+            self.assertFalse(any(args[1] == "describe-task-definition" for args, _ in aws.calls))
+            registrations = [payload for args, payload in aws.calls if args[1] == "register-task-definition"]
+            self.assertEqual(len(registrations), 2)
+            for payload, kind in zip(registrations, ["rollback", "candidate"]):
+                self.assertEqual({tag["key"]: tag["value"] for tag in payload["tags"]}, {
+                    "Application": "tiangong-ai-mcp", "Repository": "tiangong-ai/mcp-server",
+                    "DeploymentCommit": "d" * 40, "DeploymentKind": kind,
+                })
+                self.assertEqual(payload["executionRoleArn"], deployment.EXECUTION_ROLE)
             self.assertNotIn("sensitive-test-sentinel", path.read_text())
             self.assertNotIn("containerDefinitions", path.read_text())
 
     def test_wait_failure_rolls_back(self):
         aws = FakeAws(wait_failure=True)
         with self.assertRaises(deployment.DeploymentError):
-            deployment.deploy(aws, IMAGE, execute=True)
-        self.assertEqual(aws.updates(), [CANDIDATE, ROLLBACK])
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
+        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE, ROLLBACK])
 
     def test_wrong_running_digest_rolls_back(self):
         aws = FakeAws(wrong_digest=True)
         with self.assertRaises(deployment.DeploymentError):
-            deployment.deploy(aws, IMAGE, execute=True)
-        self.assertEqual(aws.updates(), [CANDIDATE, ROLLBACK])
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
+        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE, ROLLBACK])
 
     def test_public_probe_failure_rolls_back(self):
         aws = FakeAws()
         def failed_http():
-            raise deployment.DeploymentError("HTTP probe failed")
+            if aws.current == CANDIDATE:
+                raise deployment.DeploymentError("HTTP probe failed")
+            return {"health": 200, "unauthenticatedMcp": 401}
         with self.assertRaises(deployment.DeploymentError):
-            deployment.deploy(aws, IMAGE, execute=True, http_check=failed_http)
-        self.assertEqual(aws.updates(), [CANDIDATE, ROLLBACK])
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=failed_http)
+        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE, ROLLBACK])
 
     def test_foreign_deployment_is_never_overwritten_by_rollback(self):
         aws = FakeAws(wait_failure=True, concurrent=True)
         with self.assertRaises(deployment.DeploymentError):
-            deployment.deploy(aws, IMAGE, execute=True)
-        self.assertEqual(aws.updates(), [CANDIDATE])
+            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=lambda: {})
+        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE])
         self.assertEqual(aws.current, FOREIGN)
 
     def test_task_payload_is_0600_and_removed_without_secret_in_argv(self):
@@ -189,7 +325,9 @@ class DeployTests(unittest.TestCase):
             self.assertIn("sensitive-test-sentinel", path.read_text())
             return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
         with patch("deploy_ecs.subprocess.run", side_effect=fake_run):
-            deployment.Aws().call("ecs", "register-task-definition", payload=DEFINITION)
+            payload = copy.deepcopy(DEFINITION)
+            payload["containerDefinitions"][0]["environment"] = [{"name": "TEST_PRIVATE", "value": "sensitive-test-sentinel"}]
+            deployment.Aws().call("ecs", "register-task-definition", payload=payload)
         self.assertTrue(all(not path.exists() for path in captured_paths))
 
 

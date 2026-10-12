@@ -13,7 +13,7 @@ checkPaths:
   - .github/workflows/deploy.yml
   - scripts/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
+lastReviewedCommit: 69b4f2d578f8a84de3642de957b0f22c11422c37
 ---
 
 # MCP Source Image Deployment
@@ -28,13 +28,13 @@ This repository owns its source image and deployment workflow. Shared AWS IAM, E
 
 `Dockerfile` builds the checked-out TypeScript source with a digest-pinned Node 22 Alpine base, verifies the public tool inventory, and copies only production dependencies, package metadata and compiled code into the final image. Build output is cleared first so deleted modules cannot remain. Existing repository convention ignores `package-lock.json`; image install/prune explicitly avoid creating a tracked lockfile. Dependency ranges are unchanged. Builds do not claim byte-for-byte dependency reproducibility; the tested final image records its actual resolved dependency versions in `runtime-dependencies.json`.
 
-CI builds `linux/arm64` on native `ubuntu-24.04-arm` runners, matching the existing ECS task ([GitHub runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)). It runs the final image's offline MCP registry test with networking disabled, verifies ARM64, and runs mocked deployment safety tests. These checks run before AWS credentials are requested. The image that passes the deploy job's checks is pushed once under a unique commit/run/attempt tag; ECS receives its exact ECR SHA256 digest, never a floating tag.
+CI builds `linux/arm64` on native `ubuntu-24.04-arm` runners, matching the existing ECS task ([GitHub runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)). It runs the final image's offline MCP registry test with networking disabled, verifies ARM64, and runs mocked deployment safety tests. These checks run before AWS credentials are requested. The image that passes the deploy job's checks is pushed once under a unique commit/run/attempt tag; ECS receives its exact ECR SHA256 digest, never a floating tag. Build attestations are disabled for this single-platform image so the pushed digest is the ARM64 image manifest checked against the running ECS container, rather than a manifest-index digest.
 
 Local equivalents:
 
 ```bash
 python3 -m unittest discover -s scripts -p 'test_*.py' -v
-docker buildx build --platform linux/arm64 --load -t mcp-candidate:local .
+docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load -t mcp-candidate:local .
 docker run --rm --network none --entrypoint node mcp-candidate:local dist/src/test_tool_registry.js
 actionlint .github/workflows/deploy.yml
 ```
@@ -56,13 +56,17 @@ Deployment is restricted to:
 - Container: `tiangong-ai-mcp`, port 80.
 - Dedicated execution role: `arn:aws:iam::339712838008:role/TiangongAIMCPTaskExecutionRole`.
 
-The helper accepts only the original `ecsTaskExecutionRole` or dedicated role as its current execution role, and always registers with the dedicated role. It rejects any nonempty task application role. IAM must not grant the deploy role permission to pass the broad shared execution role. ECR push/pull metadata, exact service/task reads and update, log-group existence reads, task registration, and passing only the dedicated execution role are required; no resource creation/deletion is part of routine CI. The infrastructure owner maintains the actual permission policy.
+The approved `deployment/task-definition.json` template is the reviewed runtime configuration authority. It contains only non-sensitive configuration and exact Secrets Manager JSON-key references for `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN`. Their values stay in the dedicated secret and are injected by the execution role; CI has no permission to read the secret. The helper rejects plaintext Redis values, foreign references and any application task role. Only the dedicated execution role may be passed; the broad shared role is not required for candidate or rollback registration.
+
+The CI role can read the existing service/tasks, controlled task-definition tags and log-group existence metadata, register tagged own-family task revisions, and update only the existing service. It cannot call `DescribeTaskDefinition`, which has no family resource scope and could expose unrelated plaintext values. It cannot read Secrets Manager values. The execution role has ECR pull, exact existing log-group writes and `GetSecretValue` on the one exact runtime secret. The infrastructure owner maintains the actual permission policy.
 
 ## Deployment and rollback
 
-`scripts/deploy_ecs.py` is read-only unless given `--execute`. It reads the existing service and active task definition, rejects unknown API fields or unexpected target/capacity/role state, and preserves runtime environment, secret references, ports, logging and all supported task settings. It changes only the target container image, the explicit execution-role migration, and `awslogs-create-group=false`. The log driver/destination must match the exact existing `/ecs/tiangong-ai-mcp-task` group in `us-east-1`; CI proves that group exists before any task registration. The dedicated role cannot create groups. Task-definition JSON can include credentials: it is passed through a 0600 runner temporary file, removed immediately, and never printed or uploaded.
+`scripts/deploy_ecs.py` is read-only unless given `--execute`. It reads the existing service/tasks and uses the approved template, rejecting unknown template fields or unexpected target/capacity/role/secret state. The template preserves ports, capacity and supported runtime settings from the reviewed original task; Redis values move from plaintext environment to exact secret references without changing their values. The controlled migration changes the target container image, execution role, Redis environment delivery to Secrets Manager references, and `awslogs-create-group=false`. The log driver/destination must match the exact existing `/ecs/tiangong-ai-mcp-task` group in `us-east-1`; CI proves that group exists before any task registration. The dedicated role cannot create groups. The approved JSON has secret references rather than values; it is still passed through a 0600 runner temporary file, removed immediately, and never printed or uploaded.
 
-Before rollout, CI qualifies the exact digest shared by the prior running tasks and registers a rollback definition with that image plus the dedicated execution role. It then registers the candidate definition, revalidates that the service still uses the observed prior revision, and updates only that service. The script waits for stability and verifies desired/running counts, all running task-definition identities and exact container image digests.
+The exact original task revision `tiangong-ai-mcp-task:1` is the only bootstrap input. Later service revisions must be in the same family and carry all four controlled registration tags: `Application=tiangong-ai-mcp`, `Repository=tiangong-ai/mcp-server`, `DeploymentCommit=<full source SHA>`, and `DeploymentKind=candidate|rollback`. Unknown lineage fails before mutation. Candidate and rollback registrations include these tags; receipts include the approved template hash for review.
+
+Before rollout, CI qualifies the exact digest shared by the prior running tasks and registers a rollback definition with that image plus the dedicated execution role and secret references. Bootstrap also requires the prior digest to match the reviewed original template. The first deployment rolls out that old-image baseline, waits and verifies its identity/HTTP checks, then rolls out the candidate. This qualifies role/secret migration before replacing product code and gives the ECS breaker a dedicated-role rollback target. If bootstrap fails, CI stops before candidate rollout and reports the observed retained state; it never passes the legacy role. Subsequent controlled deployments can proceed directly to the candidate. The existing desired count 1, minimum healthy 100%, maximum 200%, and enabled rollback circuit breaker are mandatory guards. The script waits for stability and verifies desired/running counts, all running task-definition identities and exact container image digests.
 
 Public probes require `GET /health = 200` and unauthenticated `POST /mcp = 401` at `https://mcp.tiangong.earth`; `GET /mcp` intentionally returns 405 and is not an authentication probe. No authentication bypass is introduced.
 
