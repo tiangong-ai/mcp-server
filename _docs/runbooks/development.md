@@ -14,7 +14,7 @@ checkPaths:
   - package.json
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # MCP Development Runbook
@@ -68,7 +68,7 @@ Use `src/test.ts`, `test.http`, or the MCP Inspector when tool schemas, transpor
 
 ## Container Notes
 
-`Dockerfile` installs `@tiangong-ai/mcp-server@0.0.18` and runs `tiangong-ai-mcp-http`. The image metadata exposes port `80`, while `src/index_server.ts` defaults to `PORT=9277`; set `PORT` explicitly when the runtime platform expects a fixed port.
+`Dockerfile` builds the checked-out source into an ARM64-capable runtime image and sets `PORT=80`. It no longer installs the published npm MCP package. Use [Source Image Deployment](deployment.md) for GitHub CI, OIDC, the exact existing ECR/ECS target, verification and recovery.
 
 ## Publishing
 
@@ -81,4 +81,4 @@ npm publish
 
 Confirm package metadata and binary paths in `package.json` before publishing.
 
-The prepared retirement release is `0.0.19`. The container remains pinned to published `0.0.18` until publication of the new version is verified. The existing image therefore does not include this source retirement. Publish from the reviewed, merged source, then update the exact Dockerfile pin through a reviewed delivery and confirm the deployed image digest and tool inventory through the infrastructure owner. Source merge and workspace integration alone do not update a running MCP service.
+The prepared npm version is `0.0.19`. Npm publication remains independent of source-image deployment; the GitHub deployment workflow requires no npm login or publishing token. Source merge and workspace integration alone do not prove a running service changed. Record the exact successful deployment and independent live tool listing through the deployment runbook.

@@ -22,7 +22,7 @@ checkPaths:
   - DEV_CN.md
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong-AI-MCP
@@ -44,6 +44,10 @@ TianGong AI Model Context Protocol (MCP) Server 支持 Streamable Http 协议。
 ## 教育知识图谱工具退役
 
 教育知识图谱服务已退役。MCP 服务器不再提供 `Search_Edu_Graph_Tool`，客户端应移除对该工具的调用。`Search_Edu_Tool` 继续提供教育资源检索，不提供图谱遍历。
+
+## 服务部署
+
+GitHub CI 从已审查的 `main` 源码构建 ARM64 镜像，通过 OIDC 将精确 ECR 摘要部署到现有 ECS 服务。验证与回滚流程见 [部署手册](_docs/runbooks/deployment.md)。
 
 ## 启动 MCP 服务器
 

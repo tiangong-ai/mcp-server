@@ -15,7 +15,7 @@ checkPaths:
   - .github/prompts/**
   - _docs/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # MCP Documentation
@@ -35,6 +35,7 @@ This directory contains the repo-local source documents governed by docpact. Age
 - `_docs/contracts/repo-contract.md`: repository ownership, boundaries, and completion rules.
 - `_docs/architecture/repo-architecture.md`: MCP server topology.
 - `_docs/runbooks/development.md`: build, local server, and validation workflow.
+- `_docs/runbooks/deployment.md`: source-image CI, OIDC, ECS verification and rollback.
 - `_docs/standards/documentation-standards.md`: repo-local documentation rules.
 - `.github/prompts/mcp_update_guidelines_en.md`: English MCP update prompt.
 - `.github/prompts/mcp_update_guidelines_zh.md`: Chinese MCP update prompt.

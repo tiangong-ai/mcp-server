@@ -13,7 +13,7 @@ checkPaths:
   - mcp_config.json
   - Dockerfile
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # MCP Architecture
@@ -47,3 +47,7 @@ The package is an ESM TypeScript project targeting Node.js 18 or newer. Build ou
 `src/_shared/init_server_http.ts` registers nine tools: `Search_Edu_Tool`, `Search_ESG_Tool`, `Search_Green_Deal_Tool`, `Search_Internal_Tool`, `Search_Patent_Tool`, `Search_Report_Tool`, `Search_Sci_Tool`, `Search_Standard_Tool`, and `Search_Textbook_Tool`.
 
 The education graph tool and its `edu_graph_search` adapter were removed after the backing education graph service was retired. No graph traversal capability is advertised.
+
+## Source Image Delivery
+
+GitHub Actions builds the merged source as a `linux/arm64` image, validates its offline public tool inventory, and uses production-environment OIDC to push an immutable ECR digest and roll the existing ECS service. Deployment settings, role migration, credential handling and recovery are defined in `_docs/runbooks/deployment.md`. Npm publishing is independent of this path.

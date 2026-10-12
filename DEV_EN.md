@@ -16,7 +16,7 @@ checkPaths:
   - .env.example
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong-AI-MCP
@@ -68,14 +68,4 @@ npm run build && npm publish
 
 ## Docker Deployment
 
-```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest .
-
-aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
-
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-
-docker run -d -p 9277:9277 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-```
-
-The container image metadata exposes port `80`, while the server defaults to `PORT=9277`; set `PORT` explicitly if deploying behind a fixed platform port.
+Use [Source Image Deployment](_docs/runbooks/deployment.md) for the GitHub CI source build, OIDC credentials, ECS rollout and rollback. Npm publication is independent; Docker builds the checked-out source. The image listens on port 80.

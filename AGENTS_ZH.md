@@ -14,7 +14,7 @@ checkPaths:
   - .github/prompts/**
   - _docs/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong AI MCP – Agent 指南
@@ -77,7 +77,7 @@ LOCAL_LANGSMITH_API_KEY / REMOTE_LANGSMITH_API_KEY
 
 ## 部署说明
 
-- Dockerfile 会构建服务器镜像并开放 `9277` 端口；AWS ECR 发布流程参考 `DEV_CN.md`/`DEV_EN.md`。
+- Dockerfile 从当前源码构建 ARM64 镜像并默认监听 `80` 端口；GitHub OIDC → ECR → 现有 ECS 自动部署流程见 `_docs/runbooks/deployment.md`。
 - NPM 包提供可执行文件 `tiangong-ai-mcp-http`（`package.json` 的 `bin` 字段），指向 `dist/src/index_server.js`。
 - 发布前执行 `npm run build && npm publish`，并确保已登录 NPM。
 

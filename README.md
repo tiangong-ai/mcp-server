@@ -21,7 +21,7 @@ checkPaths:
   - DEV_CN.md
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong-AI-MCP
@@ -43,6 +43,10 @@ TianGong AI Model Context Protocol (MCP) Server supports Streamable Http protoco
 ## Education graph retirement
 
 The education knowledge graph service has been retired. The MCP server no longer advertises `Search_Edu_Graph_Tool`; clients must remove calls to that tool. `Search_Edu_Tool` continues to search education resources and does not provide graph traversal.
+
+## Service Deployment
+
+GitHub CI builds reviewed `main` source into an ARM64 image and deploys its exact ECR digest to the existing ECS service with OIDC. See the [deployment runbook](_docs/runbooks/deployment.md) for verification and rollback.
 
 ## Starting MCP Server
 
