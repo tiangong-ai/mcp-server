@@ -22,7 +22,7 @@ checkPaths:
   - DEV_CN.md
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
+lastReviewedCommit: 71e65004e5246cfcfae95f0ee5e035fdecf16ec1
 ---
 
 # TianGong-AI-MCP
@@ -43,7 +43,9 @@ TianGong AI Model Context Protocol (MCP) Server 支持 Streamable Http 协议。
 
 ## 教育知识图谱工具退役
 
-教育知识图谱服务已退役。MCP 服务器不再提供 `Search_Edu_Graph_Tool`，客户端应移除对该工具的调用。`Search_Edu_Tool` 继续提供教育资源检索，不提供图谱遍历。
+教育知识图谱服务已退役。当前源码构建的 MCP 服务器不再提供 `Search_Edu_Graph_Tool`，客户端应移除对该工具的调用。`Search_Edu_Tool` 继续提供教育资源检索，不提供图谱遍历。
+
+已发布的旧 npm 包不会被追溯修改；npm 发布独立于本次源码镜像部署。
 
 ## 服务部署
 

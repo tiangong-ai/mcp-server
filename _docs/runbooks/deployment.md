@@ -13,7 +13,7 @@ checkPaths:
   - .github/workflows/deploy.yml
   - scripts/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 0bfd160b108c997d71d33a08935bb4bcafa44fdb
+lastReviewedCommit: 71e65004e5246cfcfae95f0ee5e035fdecf16ec1
 ---
 
 # MCP Source Image Deployment
@@ -62,7 +62,7 @@ The CI role can read the existing service/tasks, controlled task-definition tags
 
 ## Deployment and rollback
 
-`scripts/deploy_ecs.py` is read-only unless given `--execute`. It reads the existing service/tasks and uses the approved template, rejecting unknown template fields or unexpected target/capacity/role/secret state. The template preserves ports, capacity and supported runtime settings from the reviewed original task; Redis values move from plaintext environment to exact secret references without changing their values. The controlled migration changes the target container image, execution role, Redis environment delivery to Secrets Manager references, and `awslogs-create-group=false`. The log driver/destination must match the exact existing `/ecs/tiangong-ai-mcp-task` group in `us-east-1`; CI proves that group exists before any task registration. The dedicated role cannot create groups. The approved JSON has secret references rather than values; it is still passed through a 0600 runner temporary file, removed immediately, and never printed or uploaded.
+`scripts/deploy_ecs.py` is read-only unless given `--execute`. It reads the existing service/tasks and uses the approved template, rejecting unknown template fields or unexpected target/capacity/role/secret state. The template preserves ports, capacity and supported runtime settings from the reviewed original task; Redis values move from plaintext environment to exact secret references without changing their values. The controlled migration changes the target container image, execution role, Redis environment delivery to Secrets Manager references, and omission of `awslogs-create-group`. The log driver/destination must match the exact existing `/ecs/tiangong-ai-mcp-task` group in `us-east-1`; CI proves that group exists before any task registration. The dedicated role cannot create groups. ECS accepts this option only when its value is `true`; an explicit `false` is rejected at registration, so disabling creation requires omission. The first CI run was rejected before any service update; this rule is covered by a regression test. The approved JSON has secret references rather than values; it is still passed through a 0600 runner temporary file, removed immediately, and never printed or uploaded.
 
 The exact original task revision `tiangong-ai-mcp-task:1` is the only bootstrap input. Later service revisions must be in the same family and carry all four controlled registration tags: `Application=tiangong-ai-mcp`, `Repository=tiangong-ai/mcp-server`, `DeploymentCommit=<full source SHA>`, and `DeploymentKind=candidate|rollback`. Unknown lineage fails before mutation. Candidate and rollback registrations include these tags; receipts include the approved template hash for review.
 
