@@ -68,7 +68,7 @@ Use `src/test.ts`, `test.http`, or the MCP Inspector when tool schemas, transpor
 
 ## Container Notes
 
-`Dockerfile` installs `@tiangong-ai/mcp-server@0.0.19` and runs `tiangong-ai-mcp-http`. The image metadata exposes port `80`, while `src/index_server.ts` defaults to `PORT=9277`; set `PORT` explicitly when the runtime platform expects a fixed port.
+`Dockerfile` installs `@tiangong-ai/mcp-server@0.0.18` and runs `tiangong-ai-mcp-http`. The image metadata exposes port `80`, while `src/index_server.ts` defaults to `PORT=9277`; set `PORT` explicitly when the runtime platform expects a fixed port.
 
 ## Publishing
 
@@ -81,4 +81,4 @@ npm publish
 
 Confirm package metadata and binary paths in `package.json` before publishing.
 
-The prepared retirement release is `0.0.19`. Publish it from the reviewed, merged source before building the pinned container; the image cannot install that version until npm publication is verified. Source merge and workspace integration alone do not update a running MCP service. Confirm the deployed image digest and tool inventory through the infrastructure owner.
+The prepared retirement release is `0.0.19`. The container remains pinned to published `0.0.18` until publication of the new version is verified. The existing image therefore does not include this source retirement. Publish from the reviewed, merged source, then update the exact Dockerfile pin through a reviewed delivery and confirm the deployed image digest and tool inventory through the infrastructure owner. Source merge and workspace integration alone do not update a running MCP service.
