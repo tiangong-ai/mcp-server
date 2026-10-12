@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 import urllib.error
 import urllib.request
 
@@ -118,6 +119,36 @@ def render_task_definition(definition, image):
         raise DeploymentError("Approved template must not include plaintext Redis values")
     containers[0]["image"] = image
     return payload
+
+
+def wait_for_completed_rollout(aws, task_definition, timeout=120, poll_interval=5):
+    # services-stable checks counts, not rolloutState. Only retry that state race;
+    # identity/configuration changes and failures must remain hard errors.
+    deadline = time.monotonic() + timeout
+    deployment_id = None
+    while True:
+        service = describe_service(aws)
+        deployments = service.get("deployments", [])
+        if (service.get("taskDefinition") != task_definition
+                or len(deployments) != 1
+                or deployments[0].get("status") != "PRIMARY"
+                or deployments[0].get("taskDefinition") != task_definition
+                or service.get("pendingCount") != 0
+                or service.get("runningCount") != service["desiredCount"]):
+            raise DeploymentError("Service changed while waiting for the intended completed rollout")
+        current = deployments[0]
+        if deployment_id is not None and current.get("id") != deployment_id:
+            raise DeploymentError("Deployment changed while waiting for rollout completion")
+        deployment_id = current.get("id")
+        state = current.get("rolloutState")
+        if state == "COMPLETED":
+            return
+        if state != "IN_PROGRESS":
+            raise DeploymentError("The intended rollout failed or has an unexpected state")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise DeploymentError("Timed out waiting for the intended completed rollout")
+        time.sleep(min(poll_interval, remaining))
 
 
 def verify_running(aws, task_definition, image=None, digest=None):
@@ -281,6 +312,7 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
             result["status"] = "migrating-baseline"
             save_receipt(receipt, result)
             aws.call("ecs", "wait", "services-stable", "--cluster", CLUSTER, "--services", SERVICE)
+            wait_for_completed_rollout(aws, rollback)
             verify_running(aws, rollback, result["rollbackImage"])
             result["migrationHttpChecks"] = http_check()
             baseline = rollback
@@ -295,6 +327,7 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
         result["status"] = "deploying"
         save_receipt(receipt, result)
         aws.call("ecs", "wait", "services-stable", "--cluster", CLUSTER, "--services", SERVICE)
+        wait_for_completed_rollout(aws, candidate)
         result["tasks"] = verify_running(aws, candidate, image)
         result["publicHttpChecks"] = http_check()
         result["authenticatedToolsList"] = "not-run-in-ci; independent operator verification"
@@ -323,6 +356,7 @@ def deploy(aws, image, definition, source_revision, execute=False, receipt=None,
                 aws.call("ecs", "update-service", "--cluster", CLUSTER, "--service", SERVICE,
                          "--task-definition", rollback)
                 aws.call("ecs", "wait", "services-stable", "--cluster", CLUSTER, "--services", SERVICE)
+                wait_for_completed_rollout(aws, rollback)
                 verify_running(aws, rollback, result["rollbackImage"])
                 result["status"] = "rolled-back"
             elif current == baseline:

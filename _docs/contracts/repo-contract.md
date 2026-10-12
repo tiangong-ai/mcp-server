@@ -13,7 +13,7 @@ checkPaths:
   - .docpact/config.yaml
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 71e65004e5246cfcfae95f0ee5e035fdecf16ec1
+lastReviewedCommit: aabaceef96a38b0d23394e2da771b4fc2a213be0
 ---
 
 # MCP Repository Contract

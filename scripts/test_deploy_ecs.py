@@ -56,7 +56,7 @@ class FakeAws:
                 "serviceArn": deployment.SERVICE_ARN, "status": "ACTIVE",
                 "taskDefinition": self.current, "desiredCount": 1,
                 "runningCount": 1, "pendingCount": 0,
-                "deployments": [{"status": "PRIMARY", "rolloutState": "COMPLETED", "taskDefinition": self.current}],
+                "deployments": [{"id": "deployment-" + self.current, "status": "PRIMARY", "rolloutState": "COMPLETED", "taskDefinition": self.current}],
                 "deploymentConfiguration": {"minimumHealthyPercent": 100, "maximumPercent": 200,
                     "deploymentCircuitBreaker": {"enable": True, "rollback": True}},
             }]}
@@ -285,6 +285,108 @@ class DeployTests(unittest.TestCase):
         aws.call = incomplete
         with self.assertRaises(deployment.DeploymentError):
             deployment.verify_running(aws, PREVIOUS)
+
+    def test_services_stable_can_precede_completed_bootstrap_candidate_and_rollback(self):
+        for candidate_failure in [False, True]:
+            with self.subTest(candidate_failure=candidate_failure):
+                aws = FakeAws(wait_failure=candidate_failure)
+                original_call = aws.call
+                transient = False
+                def completing(*args, **kwargs):
+                    nonlocal transient
+                    response = original_call(*args, **kwargs)
+                    if args[1] == "wait":
+                        transient = True
+                    elif args[1] == "describe-services" and transient:
+                        transient = False
+                        response["services"][0]["deployments"][0]["rolloutState"] = "IN_PROGRESS"
+                    return response
+                aws.call = completing
+                probes = []
+                def http():
+                    probes.append(aws.current)
+                    return {"health": 200, "unauthenticatedMcp": 401}
+                with patch("deploy_ecs.time.sleep") as sleep:
+                    if candidate_failure:
+                        with self.assertRaisesRegex(deployment.DeploymentError, "Mock waiter failed"):
+                            deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=http)
+                        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE, ROLLBACK])
+                        self.assertEqual(probes, [ROLLBACK])
+                    else:
+                        result = deployment.deploy(aws, IMAGE, DEFINITION, "d" * 40, execute=True, http_check=http)
+                        self.assertEqual(result["status"], "verified")
+                        self.assertEqual(aws.updates(), [ROLLBACK, CANDIDATE])
+                        self.assertEqual(probes, [ROLLBACK, CANDIDATE])
+                    self.assertEqual(sleep.call_count, 2)
+
+    def test_completed_rollout_wait_times_out_without_qualifying_tasks(self):
+        aws = FakeAws()
+        original_call = aws.call
+        def incomplete(*args, **kwargs):
+            response = original_call(*args, **kwargs)
+            if args[1] == "describe-services":
+                response["services"][0]["deployments"][0]["rolloutState"] = "IN_PROGRESS"
+            return response
+        aws.call = incomplete
+        with patch("deploy_ecs.time.monotonic", side_effect=[0, 0, 5, 10]), patch("deploy_ecs.time.sleep") as sleep:
+            with self.assertRaisesRegex(deployment.DeploymentError, "Timed out"):
+                deployment.wait_for_completed_rollout(aws, PREVIOUS, timeout=10, poll_interval=5)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(len(aws.calls), 3)
+        self.assertTrue(all(args[1] == "describe-services" for args, _ in aws.calls))
+
+    def test_completed_rollout_wait_rejects_failed_unknown_and_drift_without_retry(self):
+        for mutation in ["FAILED", "unknown", "definition", "deployment-definition", "primary", "configuration", "counts", "multiple"]:
+            with self.subTest(mutation=mutation):
+                aws = FakeAws()
+                original_call = aws.call
+                def changed(*args, **kwargs):
+                    response = original_call(*args, **kwargs)
+                    service = response["services"][0]
+                    current = service["deployments"][0]
+                    current["rolloutState"] = "IN_PROGRESS"
+                    if mutation in {"FAILED", "unknown"}:
+                        current["rolloutState"] = mutation
+                    elif mutation == "definition":
+                        service["taskDefinition"] = FOREIGN
+                    elif mutation == "deployment-definition":
+                        current["taskDefinition"] = FOREIGN
+                    elif mutation == "primary":
+                        current["status"] = "ACTIVE"
+                    elif mutation == "configuration":
+                        service["deploymentConfiguration"]["minimumHealthyPercent"] = 0
+                    elif mutation == "counts":
+                        service["pendingCount"] = 1
+                    else:
+                        service["deployments"].append(copy.deepcopy(current))
+                    return response
+                aws.call = changed
+                with patch("deploy_ecs.time.sleep") as sleep:
+                    with self.assertRaises(deployment.DeploymentError):
+                        deployment.wait_for_completed_rollout(aws, PREVIOUS)
+                sleep.assert_not_called()
+                self.assertEqual(len(aws.calls), 1)
+
+    def test_completed_rollout_wait_rejects_same_definition_new_deployment(self):
+        aws = FakeAws()
+        original_call = aws.call
+        reads = 0
+        def replaced(*args, **kwargs):
+            nonlocal reads
+            response = original_call(*args, **kwargs)
+            reads += 1
+            current = response["services"][0]["deployments"][0]
+            if reads == 1:
+                current["rolloutState"] = "IN_PROGRESS"
+            else:
+                current["id"] = "replacement-deployment"
+            return response
+        aws.call = replaced
+        with patch("deploy_ecs.time.sleep") as sleep:
+            with self.assertRaisesRegex(deployment.DeploymentError, "Deployment changed"):
+                deployment.wait_for_completed_rollout(aws, PREVIOUS)
+        self.assertEqual(sleep.call_count, 1)
+        self.assertEqual(len(aws.calls), 2)
 
     def test_same_revision_rollout_guard_drift_blocks_updates(self):
         aws = FakeAws()
