@@ -30,7 +30,6 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/tiangong-ai-mcp-task",
-          "awslogs-create-group": "false",
           "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         },

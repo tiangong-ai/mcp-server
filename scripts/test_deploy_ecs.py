@@ -29,7 +29,7 @@ DEFINITION = {
             {"name": key, "valueFrom": f"arn:aws:secretsmanager:{deployment.REGION}:{deployment.ACCOUNT}:secret:tiangong-ai/mcp/runtime-AbCd12:{key}::"}
             for key in ["UPSTASH_REDIS_URL", "UPSTASH_REDIS_TOKEN"]
         ],
-        "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": deployment.LOG_GROUP, "awslogs-region": deployment.REGION, "awslogs-create-group": "false"}},
+        "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": deployment.LOG_GROUP, "awslogs-region": deployment.REGION}},
     }],
 }
 
@@ -108,7 +108,6 @@ class DeployTests(unittest.TestCase):
         expected = copy.deepcopy({key: value for key, value in DEFINITION.items() if key in deployment.TASK_FIELDS})
         expected["executionRoleArn"] = deployment.EXECUTION_ROLE
         expected["containerDefinitions"][0]["image"] = IMAGE
-        expected["containerDefinitions"][0]["logConfiguration"]["options"]["awslogs-create-group"] = "false"
         self.assertEqual(rendered, expected)
         self.assertEqual(original, DEFINITION)
 
@@ -123,6 +122,17 @@ class DeployTests(unittest.TestCase):
             definition = copy.deepcopy(DEFINITION)
             definition[key] = value
             with self.subTest(key=key), self.assertRaises(deployment.DeploymentError):
+                deployment.render_task_definition(definition, IMAGE)
+
+    def test_disabled_log_group_creation_must_be_omitted(self):
+        definition = copy.deepcopy(DEFINITION)
+        options = definition["containerDefinitions"][0]["logConfiguration"]["options"]
+        options.pop("awslogs-create-group", None)
+        rendered = deployment.render_task_definition(definition, IMAGE)
+        self.assertNotIn("awslogs-create-group", rendered["containerDefinitions"][0]["logConfiguration"]["options"])
+        for value in ["false", "true"]:
+            options["awslogs-create-group"] = value
+            with self.subTest(value=value), self.assertRaises(deployment.DeploymentError):
                 deployment.render_task_definition(definition, IMAGE)
 
     def test_rejects_foreign_log_destination(self):

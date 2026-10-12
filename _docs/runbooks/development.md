@@ -14,7 +14,7 @@ checkPaths:
   - package.json
   - src/**
 lastReviewedAt: 2026-10-12
-lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
+lastReviewedCommit: 71e65004e5246cfcfae95f0ee5e035fdecf16ec1
 ---
 
 # MCP Development Runbook

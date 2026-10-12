@@ -98,11 +98,10 @@ def render_task_definition(definition, image):
     options = logging.get("options", {})
     if (logging.get("logDriver") != "awslogs"
             or options.get("awslogs-group") != LOG_GROUP
-            or options.get("awslogs-region") != REGION
-            or options.get("awslogs-create-group") not in {None, "true", "false"}):
+            or options.get("awslogs-region") != REGION):
         raise DeploymentError("Unexpected MCP log destination or creation setting")
-    if options.get("awslogs-create-group") != "false":
-        raise DeploymentError("Approved template must disable log-group creation")
+    if "awslogs-create-group" in options:
+        raise DeploymentError("Approved template must omit automatic log-group creation")
     secret_refs = {item.get("name"): item.get("valueFrom") for item in containers[0].get("secrets", [])}
     if len(containers[0].get("secrets", [])) != 2 or set(secret_refs) != {"UPSTASH_REDIS_URL", "UPSTASH_REDIS_TOKEN"}:
         raise DeploymentError("Expected only the dedicated MCP Redis secret keys")
