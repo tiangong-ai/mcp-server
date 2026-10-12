@@ -5,16 +5,16 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When developing, validating, or packaging the MCP server."
-whenToUpdate: "When setup, build, local server, auth, or publishing commands change."
+whenToUse: 'When developing, validating, or packaging the MCP server.'
+whenToUpdate: 'When setup, build, local server, auth, or publishing commands change.'
 checkPaths:
   - README.md
   - DEV_EN.md
   - DEV_CN.md
   - package.json
   - src/**
-lastReviewedAt: 2026-09-13
-lastReviewedCommit: 7e0b6f4bb92d9deebf484fc9aa76416a3a73296a
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # MCP Development Runbook
@@ -23,8 +23,7 @@ lastReviewedCommit: 7e0b6f4bb92d9deebf484fc9aa76416a3a73296a
 
 1. Use Node.js 18 or newer; repo development notes use Node.js 22.
 2. Run `npm install`.
-3. Create `.env` from `.env.example` and provide required Supabase, Upstash,
-   region, deployment URL, and optional LangSmith values.
+3. Create `.env` from `.env.example` and provide required Supabase, Upstash, region, deployment URL, and optional LangSmith values.
 
 ## Build
 
@@ -34,7 +33,7 @@ Run:
 npm run build
 ```
 
-This compiles TypeScript and marks generated server binaries executable.
+This clears previous build output, compiles TypeScript, and marks generated server binaries executable. Clearing `dist/` prevents a removed tool module from remaining in the published package.
 
 ## Local Server
 
@@ -45,8 +44,7 @@ npm run build
 npx dotenv -e .env -- node dist/src/index_server.js
 ```
 
-This starts `dist/src/index_server.js`. Launch the MCP Inspector separately if
-interactive inspection is needed.
+This starts `dist/src/index_server.js`. Launch the MCP Inspector separately if interactive inspection is needed.
 
 ## Validation
 
@@ -58,15 +56,19 @@ npm run lint
 docpact validate-config --root . --strict
 ```
 
-Use `src/test.ts`, `test.http`, or the MCP Inspector when tool schemas,
-transport, auth, or response behavior changes.
+For an offline public tool inventory check after building, run:
+
+```bash
+node dist/src/test_tool_registry.js
+```
+
+This uses an in-memory MCP client, verifies all nine active tool names and required query schemas, and rejects the retired graph tool without contacting Supabase. It does not validate authentication or backend searches.
+
+Use `src/test.ts`, `test.http`, or the MCP Inspector when tool schemas, transport, auth, or response behavior changes.
 
 ## Container Notes
 
-`Dockerfile` installs `@tiangong-ai/mcp-server@0.0.18` and runs
-`tiangong-ai-mcp-http`. The image metadata exposes port `80`, while
-`src/index_server.ts` defaults to `PORT=9277`; set `PORT` explicitly when the
-runtime platform expects a fixed port.
+`Dockerfile` builds the checked-out source into an ARM64-capable runtime image and sets `PORT=80`. It no longer installs the published npm MCP package. Use [Source Image Deployment](deployment.md) for GitHub CI, OIDC, the exact existing ECR/ECS target, verification and recovery.
 
 ## Publishing
 
@@ -78,3 +80,5 @@ npm publish
 ```
 
 Confirm package metadata and binary paths in `package.json` before publishing.
+
+The prepared npm version is `0.0.19`. Npm publication remains independent of source-image deployment; the GitHub deployment workflow requires no npm login or publishing token. Source merge and workspace integration alone do not prove a running service changed. Record the exact successful deployment and independent live tool listing through the deployment runbook.

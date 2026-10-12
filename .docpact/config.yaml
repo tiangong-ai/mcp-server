@@ -1,7 +1,7 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-09-14"
-lastReviewedCommit: "ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746"
+lastReviewedAt: "2026-10-12"
+lastReviewedCommit: "69b4f2d578f8a84de3642de957b0f22c11422c37"
 
 repo:
   id: mcp
@@ -29,6 +29,10 @@ routing:
         - DEV_CN.md
         - package.json
         - Dockerfile
+        - .dockerignore
+        - scripts/**
+        - deployment/**
+        - .github/workflows/deploy.yml
         - .env.example
         - test.http
 
@@ -46,6 +50,10 @@ coverage:
     - package.json
     - tsconfig.json
     - Dockerfile
+    - .dockerignore
+    - scripts/**
+    - deployment/**
+    - .github/workflows/deploy.yml
     - mcp_config.json
     - .env.example
     - src/**
@@ -156,6 +164,14 @@ rules:
         kind: node-workflow
       - path: Dockerfile
         kind: deployment-container
+      - path: .dockerignore
+        kind: deployment-build-context
+      - path: .github/workflows/deploy.yml
+        kind: deployment-ci
+      - path: scripts/**
+        kind: deployment-automation
+      - path: deployment/**
+        kind: approved-runtime-template
       - path: .env.example
         kind: environment-template
       - path: DEV_EN.md
@@ -174,6 +190,8 @@ rules:
       - path: DEV_CN.md
         mode: review_or_update
       - path: _docs/runbooks/development.md
+        mode: review_or_update
+      - path: _docs/runbooks/deployment.md
         mode: review_or_update
       - path: _docs/contracts/repo-contract.md
         mode: review_or_update

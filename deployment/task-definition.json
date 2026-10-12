@@ -1,0 +1,65 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "tiangong-ai-mcp",
+      "image": "339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp@sha256:bd59fe70c213c450ba67a761403baa3e2ac3e0b41ffa0913fe4d02087b20aea0",
+      "cpu": 0,
+      "memory": 512,
+      "memoryReservation": 512,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp",
+          "name": "tiangong-ai-mcp-80",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "PORT",
+          "value": "80"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tiangong-ai-mcp-task",
+          "awslogs-create-group": "false",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": [],
+      "secrets": [
+        {
+          "name": "UPSTASH_REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:339712838008:secret:tiangong-ai/mcp/runtime-QiFsja:UPSTASH_REDIS_URL::"
+        },
+        {
+          "name": "UPSTASH_REDIS_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:339712838008:secret:tiangong-ai/mcp/runtime-QiFsja:UPSTASH_REDIS_TOKEN::"
+        }
+      ]
+    }
+  ],
+  "family": "tiangong-ai-mcp-task",
+  "executionRoleArn": "arn:aws:iam::339712838008:role/TiangongAIMCPTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "enableFaultInjection": false
+}

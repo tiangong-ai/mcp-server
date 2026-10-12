@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { regEduTool } from '../tools/edu.js';
-import { regEduGraphTool } from '../tools/edu_graph.js';
 import { regESGTool } from '../tools/esg.js';
 import { regGreenDealTool } from '../tools/green_deal.js';
 import { regInternalTool } from '../tools/internal.js';
@@ -17,7 +16,6 @@ export function initializeServer(bearerKey?: string): McpServer {
   });
 
   regEduTool(server, bearerKey);
-  regEduGraphTool(server, bearerKey);
   regESGTool(server, bearerKey);
   regGreenDealTool(server, bearerKey);
   regInternalTool(server, bearerKey);

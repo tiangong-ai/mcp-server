@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When setting up, developing, testing, publishing, or deploying the MCP server."
-whenToUpdate: "When setup, build, local server, publishing, or Docker deployment commands change."
+whenToUse: 'When setting up, developing, testing, publishing, or deploying the MCP server.'
+whenToUpdate: 'When setup, build, local server, publishing, or Docker deployment commands change.'
 checkPaths:
   - README.md
   - README_CN.md
@@ -15,8 +15,8 @@ checkPaths:
   - Dockerfile
   - .env.example
   - src/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong-AI-MCP
@@ -68,15 +68,4 @@ npm run build && npm publish
 
 ## Docker Deployment
 
-```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest .
-
-aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
-
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-
-docker run -d -p 9277:9277 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-```
-
-The container image metadata exposes port `80`, while the server defaults to
-`PORT=9277`; set `PORT` explicitly if deploying behind a fixed platform port.
+Use [Source Image Deployment](_docs/runbooks/deployment.md) for the GitHub CI source build, OIDC credentials, ECS rollout and rollback. Npm publication is independent; Docker builds the checked-out source. The image listens on port 80.

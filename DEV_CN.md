@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: zh-CN
-whenToUse: "When setting up, developing, testing, publishing, or deploying the MCP server with Chinese-language guidance."
-whenToUpdate: "When setup, build, local server, publishing, or Docker deployment commands change."
+whenToUse: 'When setting up, developing, testing, publishing, or deploying the MCP server with Chinese-language guidance.'
+whenToUpdate: 'When setup, build, local server, publishing, or Docker deployment commands change.'
 checkPaths:
   - README.md
   - README_CN.md
@@ -15,8 +15,8 @@ checkPaths:
   - Dockerfile
   - .env.example
   - src/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 3f39012edf73bc825944b15647fcce8ae6ad3cae
 ---
 
 # TianGong-AI-MCP
@@ -67,14 +67,4 @@ npm run build && npm publish
 
 ## Dcoker发布
 
-```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest .
-
-aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
-
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-
-docker run -d -p 9277:9277 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
-```
-
-镜像元数据声明 `EXPOSE 80`，但服务默认监听 `PORT=9277`；如部署平台固定端口，请显式设置 `PORT`。
+GitHub CI 的源码构建、OIDC 身份、ECS 部署与回滚流程见 [源码镜像部署手册](_docs/runbooks/deployment.md)。Docker 直接构建当前源码，无需先发布 npm 包，镜像默认监听 80 端口。
