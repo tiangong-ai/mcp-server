@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: zh-CN
-whenToUse: "When installing, configuring, running, or integrating the TianGong AI MCP server with Chinese-language guidance."
-whenToUpdate: "When tool behavior, auth, environment variables, package metadata, build commands, or server startup changes."
+whenToUse: 'When installing, configuring, running, or integrating the TianGong AI MCP server with Chinese-language guidance.'
+whenToUpdate: 'When tool behavior, auth, environment variables, package metadata, build commands, or server startup changes.'
 checkPaths:
   - AGENTS.md
   - AGENTS_ZH.md
@@ -21,8 +21,8 @@ checkPaths:
   - DEV_EN.md
   - DEV_CN.md
   - src/**
-lastReviewedAt: 2026-09-14
-lastReviewedCommit: ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # TianGong-AI-MCP
@@ -40,6 +40,10 @@ This original repository now belongs to the [tiangong-ai organization](https://g
 [中文](https://github.com/tiangong-ai/mcp-server/blob/main/README_CN.md) | [English](https://github.com/tiangong-ai/mcp-server/blob/main/README.md)
 
 TianGong AI Model Context Protocol (MCP) Server 支持 Streamable Http 协议。
+
+## 教育知识图谱工具退役
+
+教育知识图谱服务已退役。MCP 服务器不再提供 `Search_Edu_Graph_Tool`，客户端应移除对该工具的调用。`Search_Edu_Tool` 继续提供教育资源检索，不提供图谱遍历。
 
 ## 启动 MCP 服务器
 

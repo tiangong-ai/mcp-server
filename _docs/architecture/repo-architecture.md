@@ -5,25 +5,22 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When changing MCP tools, auth, transport, package entry points, or deployment packaging."
-whenToUpdate: "When server topology, tool registration, auth flow, or runtime assumptions change."
+whenToUse: 'When changing MCP tools, auth, transport, package entry points, or deployment packaging.'
+whenToUpdate: 'When server topology, tool registration, auth flow, or runtime assumptions change.'
 checkPaths:
   - src/**
   - package.json
   - mcp_config.json
   - Dockerfile
-lastReviewedAt: 2026-04-29
-lastReviewedCommit: 04a3868c3b259fd4fe32b35b8198e20bbf4f329c
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # MCP Architecture
 
 ## Overview
 
-The repository provides a TypeScript MCP server for TianGong AI search tools.
-`src/index_server.ts` runs an Express server on `PORT` with a `/mcp` endpoint.
-Tools are registered through shared server initialization code and call
-Supabase Edge Functions.
+The repository provides a TypeScript MCP server for TianGong AI search tools. `src/index_server.ts` runs an Express server on `PORT` with a `/mcp` endpoint. Tools are registered through shared server initialization code and call Supabase Edge Functions.
 
 ## Key Paths
 
@@ -37,14 +34,16 @@ Supabase Edge Functions.
 
 ## Runtime Shape
 
-The package is an ESM TypeScript project targeting Node.js 18 or newer. Build
-output lands in `dist/`, and the package exposes `tiangong-ai-mcp-http` as a
-binary entry.
+The package is an ESM TypeScript project targeting Node.js 18 or newer. Build output lands in `dist/`, and the package exposes `tiangong-ai-mcp-http` as a binary entry.
 
 ## Integration Points
 
 - Incoming clients use the Streamable HTTP transport.
-- Auth accepts Supabase bearer tokens or cached credential verification through
-  Upstash Redis.
-- Tool calls depend on Supabase Edge Functions owned by the edge-function
-  repository.
+- Auth accepts Supabase bearer tokens or cached credential verification through Upstash Redis.
+- Tool calls depend on Supabase Edge Functions owned by the edge-function repository.
+
+## Current Search Tools
+
+`src/_shared/init_server_http.ts` registers nine tools: `Search_Edu_Tool`, `Search_ESG_Tool`, `Search_Green_Deal_Tool`, `Search_Internal_Tool`, `Search_Patent_Tool`, `Search_Report_Tool`, `Search_Sci_Tool`, `Search_Standard_Tool`, and `Search_Textbook_Tool`.
+
+The education graph tool and its `edu_graph_search` adapter were removed after the backing education graph service was retired. No graph traversal capability is advertised.

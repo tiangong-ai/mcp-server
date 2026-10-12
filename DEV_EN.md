@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When setting up, developing, testing, publishing, or deploying the MCP server."
-whenToUpdate: "When setup, build, local server, publishing, or Docker deployment commands change."
+whenToUse: 'When setting up, developing, testing, publishing, or deploying the MCP server.'
+whenToUpdate: 'When setup, build, local server, publishing, or Docker deployment commands change.'
 checkPaths:
   - README.md
   - README_CN.md
@@ -15,8 +15,8 @@ checkPaths:
   - Dockerfile
   - .env.example
   - src/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # TianGong-AI-MCP
@@ -78,5 +78,4 @@ docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
 docker run -d -p 9277:9277 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-ai-mcp:latest
 ```
 
-The container image metadata exposes port `80`, while the server defaults to
-`PORT=9277`; set `PORT` explicitly if deploying behind a fixed platform port.
+The container image metadata exposes port `80`, while the server defaults to `PORT=9277`; set `PORT` explicitly if deploying behind a fixed platform port.

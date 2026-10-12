@@ -1,7 +1,7 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-09-14"
-lastReviewedCommit: "ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746"
+lastReviewedAt: "2026-10-12"
+lastReviewedCommit: "96a1863d8504b9b15f0c2b7235ab5a63f0690846"
 
 repo:
   id: mcp

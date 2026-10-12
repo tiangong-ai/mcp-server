@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: zh-CN
-whenToUse: "When setting up, developing, testing, publishing, or deploying the MCP server with Chinese-language guidance."
-whenToUpdate: "When setup, build, local server, publishing, or Docker deployment commands change."
+whenToUse: 'When setting up, developing, testing, publishing, or deploying the MCP server with Chinese-language guidance.'
+whenToUpdate: 'When setup, build, local server, publishing, or Docker deployment commands change.'
 checkPaths:
   - README.md
   - README_CN.md
@@ -15,8 +15,8 @@ checkPaths:
   - Dockerfile
   - .env.example
   - src/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # TianGong-AI-MCP

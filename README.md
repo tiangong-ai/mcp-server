@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When installing, configuring, running, or integrating the TianGong AI MCP server."
-whenToUpdate: "When tool behavior, auth, environment variables, package metadata, build commands, or server startup changes."
+whenToUse: 'When installing, configuring, running, or integrating the TianGong AI MCP server.'
+whenToUpdate: 'When tool behavior, auth, environment variables, package metadata, build commands, or server startup changes.'
 checkPaths:
   - AGENTS.md
   - .docpact/config.yaml
@@ -20,8 +20,8 @@ checkPaths:
   - DEV_EN.md
   - DEV_CN.md
   - src/**
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 56622587c4d1b421cf5e27ce2abc0e136b470f70
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # TianGong-AI-MCP
@@ -39,6 +39,10 @@ This original repository now belongs to the [tiangong-ai organization](https://g
 [中文](https://github.com/tiangong-ai/mcp-server/blob/main/README_CN.md) | [English](https://github.com/tiangong-ai/mcp-server/blob/main/README.md)
 
 TianGong AI Model Context Protocol (MCP) Server supports Streamable Http protocol.
+
+## Education graph retirement
+
+The education knowledge graph service has been retired. The MCP server no longer advertises `Search_Edu_Graph_Tool`; clients must remove calls to that tool. `Search_Edu_Tool` continues to search education resources and does not provide graph traversal.
 
 ## Starting MCP Server
 

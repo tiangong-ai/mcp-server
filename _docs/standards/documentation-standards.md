@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: mcp
 language: en
-whenToUse: "When creating, moving, or reviewing MCP repository documentation."
-whenToUpdate: "When documentation layers, metadata rules, or source-of-truth boundaries change."
+whenToUse: 'When creating, moving, or reviewing MCP repository documentation.'
+whenToUpdate: 'When documentation layers, metadata rules, or source-of-truth boundaries change.'
 checkPaths:
   - AGENTS.md
   - AGENTS_ZH.md
@@ -14,8 +14,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - .github/prompts/**
   - _docs/**
-lastReviewedAt: 2026-09-14
-lastReviewedCommit: ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746
+lastReviewedAt: 2026-10-12
+lastReviewedCommit: 96a1863d8504b9b15f0c2b7235ab5a63f0690846
 ---
 
 # MCP Documentation Standards
@@ -23,10 +23,8 @@ lastReviewedCommit: ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746
 ## Layers
 
 - `AGENTS.md`: mandatory repo entry guidance for agents.
-- `.docpact/config.yaml`: machine-readable governance, routing, coverage, and
-  document inventory.
-- `.github/workflows/docpact.yml`: CI enforcement for config validation and PR
-  documentation lint.
+- `.docpact/config.yaml`: machine-readable governance, routing, coverage, and document inventory.
+- `.github/workflows/docpact.yml`: CI enforcement for config validation and PR documentation lint.
 - `_docs/contracts/**`: current constraints and ownership rules.
 - `_docs/architecture/**`: current server topology and integration facts.
 - `_docs/runbooks/**`: executable procedures.
@@ -37,11 +35,7 @@ lastReviewedCommit: ea3c83bab1cb6590b0d94e8ae0372e9cf9c1b746
 
 - Keep deterministic governance facts in `.docpact/config.yaml`.
 - Keep explanatory architecture, auth, tool, and workflow details in `_docs/**`.
-- Update docs when MCP tool names, schemas, auth behavior, transport paths,
-  package binaries, or required environment variables change.
-- Keep localized docs aligned when user-visible setup or operational behavior
-  changes.
-- Keep agent prompts aligned with maintained entry points and validation
-  commands; remove stale workaround notes when package metadata has moved on.
-- Do not duplicate root workspace branch policy or submodule integration policy
-  in this repository.
+- Update docs when MCP tool names, schemas, auth behavior, transport paths, package binaries, or required environment variables change.
+- Keep localized docs aligned when user-visible setup or operational behavior changes.
+- Keep agent prompts aligned with maintained entry points and validation commands; remove stale workaround notes when package metadata has moved on.
+- Do not duplicate root workspace branch policy or submodule integration policy in this repository.
